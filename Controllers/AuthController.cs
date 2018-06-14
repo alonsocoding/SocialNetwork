@@ -17,22 +17,25 @@ namespace DatingApp.API.Controllers
     {
         private readonly IAuthRepository repo;
         private readonly IConfiguration config;
-        public AuthController(IAuthRepository repo, IConfiguration config) {
+        public AuthController(IAuthRepository repo, IConfiguration config)
+        {
             this.repo = repo;
             this.config = config;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] UserForRegisterDto userForRegisterDto) {
+        public async Task<IActionResult> Register([FromBody] UserForRegisterDto userForRegisterDto)
+        {
 
+            if(!string.IsNullOrEmpty(userForRegisterDto.Username))
             // Convert username into lower case string
             userForRegisterDto.Username = userForRegisterDto.Username.ToLower();
 
-            if(await this.repo.UserExists(userForRegisterDto.Username))
+            if (await this.repo.UserExists(userForRegisterDto.Username))
                 ModelState.AddModelError("Username", "Username already exists");
 
             // Validate Request
-            if(!ModelState.IsValid) 
+            if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             var userToCreate = new User { Username = userForRegisterDto.Username };
@@ -42,15 +45,19 @@ namespace DatingApp.API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UserForLoginDto userForLoginDto) {
+        public async Task<IActionResult> Login([FromBody] UserForLoginDto userForLoginDto)
+        {
+            throw new Exception("Computer says no!");
+
             var userFromRepo = await this.repo.Login(userForLoginDto.Username.ToLower(), userForLoginDto.Password);
-            if(userFromRepo == null)
+            if (userFromRepo == null)
                 return Unauthorized();
 
             // Generate Token
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(this.config.GetSection("AppSettings:Token").Value);
-            var tokenDescriptor = new SecurityTokenDescriptor {
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
                 Subject = new ClaimsIdentity(new Claim[] {
                     new Claim(ClaimTypes.NameIdentifier, userFromRepo.Id.ToString()),
                     new Claim(ClaimTypes.Name, userFromRepo.Username)
@@ -61,7 +68,7 @@ namespace DatingApp.API.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
-            return Ok( new {tokenString});
+            return Ok(new { tokenString });
         }
     }
 }
